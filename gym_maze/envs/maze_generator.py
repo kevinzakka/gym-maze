@@ -1,4 +1,5 @@
 import os
+
 from gym_maze.envs.maze_view_2d import Maze
 
 if __name__ == "__main__":
@@ -21,5 +22,4 @@ if __name__ == "__main__":
 
     maze = Maze(maze_size=(5, 5))
     maze.save_maze(maze_path)
-    print("New maze generated and saved at %s." %  maze_path)
-
+    print("New maze generated and saved at %s." % maze_path)
