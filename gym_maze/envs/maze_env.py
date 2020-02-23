@@ -21,7 +21,7 @@ class MazeEnv(gym.Env):
         if maze_file:
             self.maze_view = MazeView2D(maze_name="OpenAI Gym - Maze (%s)" % maze_file,
                                         maze_file_path=maze_file,
-                                        screen_size=(640, 640), 
+                                        screen_size=(640, 640),
                                         enable_render=enable_render)
         elif maze_size:
             if mode == "plus":
@@ -99,11 +99,11 @@ class MazeEnv(gym.Env):
     def is_game_over(self):
         return self.maze_view.game_over
 
-    def render(self, mode="human", close=False):
+    def render(self, mode="human", close=False, egocentric=False):
         if close:
             self.maze_view.quit_game()
 
-        return self.maze_view.update(mode)
+        return self.maze_view.update(mode, egocentric)
 
 
 class MazeEnvSample5x5(MazeEnv):

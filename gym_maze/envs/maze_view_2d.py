@@ -69,9 +69,9 @@ class MazeView2D:
             # show the goal
             self.__draw_goal()
 
-    def update(self, mode="human"):
+    def update(self, mode="human", egocentric=False):
         try:
-            img_output = self.__view_update(mode)
+            img_output = self.__view_update(mode, egocentric)
             self.__controller_update()
         except Exception as e:
             self.__game_over = True
@@ -119,7 +119,7 @@ class MazeView2D:
                     self.__game_over = True
                     self.quit_game()
 
-    def __view_update(self, mode="human"):
+    def __view_update(self, mode="human", egocentric=False):
         if not self.__game_over:
             # update the robot's position
             self.__draw_entrance()
@@ -127,21 +127,29 @@ class MazeView2D:
             self.__draw_portals()
             self.__draw_robot()
 
-
             # update the screen
             self.screen.blit(self.background, (0, 0))
-            self.screen.blit(self.maze_layer,(0, 0))
+            self.screen.blit(self.maze_layer, (0, 0))
 
             if mode == "human":
                 pygame.display.flip()
 
+            if egocentric:
+                # we want a 3x3 rectangle crop
+                H = 3*self.CELL_H + 10
+                W = 3*self.CELL_W + 10
+                x, y, r = self.__get_robot_pose()
+                cropped = pygame.Surface((H, W))
+                cropped.blit(pygame.display.get_surface(), (0, 0), (x-H//2, y-W//2, H, W))
+                return np.flipud(np.rot90(pygame.surfarray.array3d(cropped)))
+
             return np.flipud(np.rot90(pygame.surfarray.array3d(pygame.display.get_surface())))
 
     def __draw_maze(self):
-        
+
         if self.__enable_render is False:
             return
-        
+
         line_colour = (0, 0, 0, 255)
 
         # drawing the horizontal lines
@@ -169,7 +177,7 @@ class MazeView2D:
 
         if self.__enable_render is False:
             return
-        
+
         dx = x * self.CELL_W
         dy = y * self.CELL_H
 
@@ -194,14 +202,18 @@ class MazeView2D:
 
             pygame.draw.line(self.maze_layer, colour, line_head, line_tail)
 
+    def __get_robot_pose(self):
+        x = int(self.__robot[0] * self.CELL_W + self.CELL_W * 0.5 + 0.5)
+        y = int(self.__robot[1] * self.CELL_H + self.CELL_H * 0.5 + 0.5)
+        r = int(min(self.CELL_W, self.CELL_H)/5 + 0.5)
+        return x, y, r
+
     def __draw_robot(self, colour=(0, 0, 150), transparency=255):
 
         if self.__enable_render is False:
             return
-        
-        x = int(self.__robot[0] * self.CELL_W + self.CELL_W * 0.5 + 0.5)
-        y = int(self.__robot[1] * self.CELL_H + self.CELL_H * 0.5 + 0.5)
-        r = int(min(self.CELL_W, self.CELL_H)/5 + 0.5)
+
+        x, y, r = self.__get_robot_pose()
 
         pygame.draw.circle(self.maze_layer, colour + (transparency,), (x, y), r)
 
@@ -217,7 +229,7 @@ class MazeView2D:
 
         if self.__enable_render is False:
             return
-        
+
         colour_range = np.linspace(0, 255, len(self.maze.portals), dtype=int)
         colour_i = 0
         for portal in self.maze.portals:
@@ -290,7 +302,7 @@ class Maze:
         "W": (-1, 0)
     }
 
-    def __init__(self, maze_cells=None, maze_size=(10,10), has_loops=True, num_portals=0):
+    def __init__(self, maze_cells=None, maze_size=(10, 10), has_loops=True, num_portals=0):
 
         # maze member variables
         self.maze_cells = maze_cells
@@ -541,6 +553,7 @@ class Maze:
 
         return opposite_dirs
 
+
 class Portal:
 
     def __init__(self, *locations):
@@ -570,5 +583,3 @@ if __name__ == "__main__":
     maze = MazeView2D(screen_size= (500, 500), maze_size=(10,10))
     maze.update()
     input("Enter any key to quit.")
-
-
