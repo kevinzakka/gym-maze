@@ -1,6 +1,8 @@
 import gym
 import numpy as np
+import networkx as nx
 
+from itertools import islice
 from gym import spaces
 from gym.utils import seeding
 from gym_maze.envs.maze_view_2d import MazeView2D
@@ -67,6 +69,16 @@ class MazeEnv(gym.Env):
         # Just need to initialize the relevant attributes
         self.configure()
 
+    def k_shortest_paths(self, k):
+        paths = nx.shortest_simple_paths(
+            self.graph,
+            source=tuple(self.maze_view.entrance),
+            target=tuple(self.maze_view.goal),
+        )
+        paths = list(islice(paths, k))
+        paths = [self.maze_view.maze.coords2compas(p) for p in paths]
+        return paths
+
     def __del__(self):
         if self.enable_render is True:
             self.maze_view.quit_game()
@@ -91,7 +103,7 @@ class MazeEnv(gym.Env):
             reward = -0.1 / (self.maze_size[0] * self.maze_size[1])
             done = False
 
-        self.state = self.maze_view.robot
+        self.state = self.render(egocentric=True)
 
         info = {}
 
@@ -99,7 +111,7 @@ class MazeEnv(gym.Env):
 
     def reset(self):
         self.maze_view.reset_robot()
-        self.state = np.zeros(2)
+        self.state = None
         self.steps_beyond_done = None
         self.done = False
         return self.state
@@ -112,6 +124,9 @@ class MazeEnv(gym.Env):
             self.maze_view.quit_game()
 
         return self.maze_view.update(mode, egocentric)
+
+    def compas2int(self, c):
+        return MazeEnv.ACTION.index(c)
 
     @property
     def graph(self):

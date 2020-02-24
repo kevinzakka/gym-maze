@@ -17,6 +17,7 @@ class MazeView2D:
         screen_size=(600, 600),
         has_loops=False,
         num_portals=0,
+        rand_break=0.7,
         enable_render=True,
     ):
 
@@ -29,7 +30,12 @@ class MazeView2D:
 
         # Load a maze
         if maze_file_path is None:
-            self.__maze = Maze(maze_size=maze_size, has_loops=has_loops, num_portals=num_portals)
+            self.__maze = Maze(
+                maze_size=maze_size,
+                has_loops=has_loops,
+                num_portals=num_portals,
+                rand_break=rand_break,
+            )
         else:
             if not os.path.exists(maze_file_path):
                 dir_path = os.path.dirname(os.path.abspath(__file__))
@@ -78,6 +84,13 @@ class MazeView2D:
 
             # show the goal
             self.__draw_goal()
+
+            # make background more discriminative
+            cur_dir = os.path.dirname(os.path.realpath(__file__))
+            robot_img = pygame.image.load(os.path.join(cur_dir, "walle.jpg")).convert_alpha()
+            robot_img = pygame.transform.scale(robot_img, (650, 650))
+            robot_img.fill((255, 255, 255, 128), None, pygame.BLEND_RGBA_MULT)
+            self.background.blit(robot_img, (0, 0))
 
     def update(self, mode="human", egocentric=False):
         try:
@@ -157,6 +170,26 @@ class MazeView2D:
                 return np.flipud(np.rot90(pygame.surfarray.array3d(cropped)))
 
             return np.flipud(np.rot90(pygame.surfarray.array3d(pygame.display.get_surface())))
+
+    def _randomize_cells(self):
+        if not self.__enable_render:
+            return
+
+        LIGHT = (255, 255, 255)
+        DARK = (66, 176, 245)
+
+        for i, j in product(range(self.maze_size[0]), repeat=2):
+            if not i % 2:
+                if not j % 2:
+                    color = DARK
+                else:
+                    color = LIGHT
+            else:
+                if not j % 2:
+                    color = LIGHT
+                else:
+                    color = DARK
+            self.__colour_cell((i, j), colour=color, transparency=50)
 
     def __draw_maze(self):
 
@@ -312,11 +345,14 @@ class Maze:
 
     COMPASS = {"N": (0, -1), "E": (1, 0), "S": (0, 1), "W": (-1, 0)}
 
-    def __init__(self, maze_cells=None, maze_size=(10, 10), has_loops=True, num_portals=0):
+    def __init__(
+        self, maze_cells=None, maze_size=(10, 10), has_loops=True, num_portals=0, rand_break=0.5
+    ):
 
         # maze member variables
         self.maze_cells = maze_cells
         self.has_loops = has_loops
+        self._rand_break = rand_break
         self.__portals_dict = dict()
         self.__portals = []
         self.num_portals = num_portals
@@ -432,7 +468,7 @@ class Maze:
                 num_cells_visited += 1
 
         if self.has_loops:
-            self.__break_random_walls(0.2)
+            self.__break_random_walls(self._rand_break)
 
         if self.num_portals > 0:
             self.__set_random_portals(num_portal_sets=self.num_portals, set_size=2)
@@ -533,6 +569,29 @@ class Maze:
     @property
     def MAZE_H(self):
         return int(self.maze_size[1])
+
+    @staticmethod
+    def coords2compas(coords):
+        """Converts a list of 2D coordinates to a list of compas directions.
+        """
+        compas = []
+        for i in range(len(coords)-1):
+            coord_curr = coords[i]
+            coord_next = coords[i+1]
+            diff_x = coord_curr[0] - coord_next[0]
+            diff_y = coord_curr[1] - coord_next[1]
+            if diff_x != 0:
+                if diff_x == -1:
+                    action = "E"
+                else:
+                    action = "W"
+            else:
+                if diff_y == -1:
+                    action = "S"
+                else:
+                    action = "N"
+            compas.append(action)
+        return compas
 
     @classmethod
     def get_walls_status(cls, cell):
