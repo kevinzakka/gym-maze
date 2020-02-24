@@ -3,6 +3,9 @@ import random
 
 import numpy as np
 import pygame
+import networkx as nx
+
+from itertools import product
 
 
 class MazeView2D:
@@ -336,6 +339,8 @@ class Maze:
 
             self._generate_maze()
 
+        self._create_graph()
+
     def save_maze(self, file_path):
 
         if not isinstance(file_path, str):
@@ -358,6 +363,25 @@ class Maze:
 
         else:
             return np.load(file_path, allow_pickle=False, fix_imports=True)
+
+    def _create_graph(self):
+        self.G = nx.Graph()
+        self.G.add_nodes_from(list(product(range(self.MAZE_W), repeat=2)))
+        for node in self.G.nodes:
+            walls = self.get_walls_status(self.maze_cells[node])
+            for direc, is_open in walls.items():
+                i, j = node
+                if is_open:
+                    if direc == "W":
+                        i -= 1
+                    elif direc == "E":
+                        i += 1
+                    elif direc == "N":
+                        j -= 1
+                    else:  # E
+                        j += 1
+                    if i >= 0 and j >= 0 and i < self.MAZE_H and j < self.MAZE_W:
+                        self.G.add_edge(node, (i, j))
 
     def _generate_maze(self):
 
@@ -385,7 +409,6 @@ class Maze:
                 if 0 <= x1 < self.MAZE_W and 0 <= y1 < self.MAZE_H:
                     # if all four walls still exist
                     if self.all_walls_intact(self.maze_cells[x1, y1]):
-                        # if self.num_walls_broken(self.maze_cells[x1, y1]) <= 1:
                         neighbours[dir_key] = (x1, y1)
 
             # if there is a neighbour

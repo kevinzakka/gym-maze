@@ -113,6 +113,10 @@ class MazeEnv(gym.Env):
 
         return self.maze_view.update(mode, egocentric)
 
+    @property
+    def graph(self):
+        return self.maze_view.maze.G
+
 
 class MazeEnvSample5x5(MazeEnv):
     def __init__(self, enable_render=True):

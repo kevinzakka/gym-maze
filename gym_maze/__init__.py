@@ -15,6 +15,7 @@ register(
     nondeterministic=True,
 )
 
+# using this one
 register(
     id="maze-sample-10x10-v0",
     entry_point="gym_maze.envs:MazeEnvSample10x10",
